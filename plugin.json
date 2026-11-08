@@ -1,0 +1,21 @@
+{
+  "name": "session-guardian",
+  "displayName": "Session Guardian",
+  "version": "2.0.0",
+  "description": "Monitors conversation context size, Gemini KV cache warmth, and compaction history with a Claude-style dark-theme Context gauge, alerting you when a session goes cold, needs /compact, or should be offloaded to a fresh conversation.",
+  "author": {
+    "name": "Matt Bogado",
+    "url": "https://github.com/mattbogado"
+  },
+  "homepage": "https://github.com/mattbogado/session-guardian",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mattbogado/session-guardian"
+  },
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Check my current session health, cache hit rate, and context load",
+    "Are we ready to compact or offload this conversation?",
+    "Offload this session into a handoff document for a fresh chat"
+  ]
+}

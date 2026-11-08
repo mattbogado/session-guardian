@@ -1,0 +1,18 @@
+{
+  "command": "node",
+  "args": ["--watch", "main.mjs"],
+  "restart_policy": "always",
+  "description": "Live visual gauge for session context tokens, Gemini KV cache hit rate, idle warmth, and compaction/offload readiness.",
+  "display_name": "Session Guardian Dashboard",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "Session Guardian",
+    "views": [
+      {
+        "path": "/",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "title": "Session Guardian"
+      }
+    ]
+  }
+}

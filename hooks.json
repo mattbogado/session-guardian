@@ -1,0 +1,12 @@
+{
+  "session-telemetry-monitor": {
+    "enabled": true,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 \"$HOME/.gemini/config/plugins/session-guardian/scripts/session_monitor.py\" --mode hook",
+        "timeout": 5
+      }
+    ]
+  }
+}
