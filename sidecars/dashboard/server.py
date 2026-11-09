@@ -2,9 +2,11 @@
 """Telemetry collector and Offload/Compact action runner for Session Guardian.
 
 Reuses core transcript analysis from `scripts/session_monitor.py` (DRY) and provides:
-1. `--json`: Detailed Claude-style context breakdown and session metrics.
+1. `--json`: Detailed Claude-style context breakdown, active conversation auto-detection
+   via `~/.gemini/antigravity/annotations/*.pbtxt` (`last_user_view_time`) + transcript mtime,
+   and recent conversation list.
 2. `--compact`: Sends `/compact` via `agentapi` and copies `/compact` to clipboard.
-3. `--offload`: Summarizes the original conversation from `transcript.jsonl`, writes
+3. `--offload`: Summarizes the active conversation from `transcript.jsonl`, writes
    `SESSION_HANDOFF.md`, and starts a new Antigravity chat via `agentapi new-conversation`.
 """
 
@@ -15,7 +17,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PLUGIN_ROOT / "scripts"))
@@ -23,40 +25,130 @@ sys.path.insert(0, str(PLUGIN_ROOT / "scripts"))
 import session_monitor as sm  # noqa: E402
 
 
-BRAIN_DIR = Path.home() / ".gemini" / "antigravity" / "brain"
-AGENTAPI_BIN = Path.home() / ".gemini" / "antigravity" / "bin" / "agentapi"
+AGY_DIR = Path.home() / ".gemini" / "antigravity"
+BRAIN_DIR = AGY_DIR / "brain"
+ANNOTATIONS_DIR = AGY_DIR / "annotations"
+AGENTAPI_BIN = AGY_DIR / "bin" / "agentapi"
 MAX_CONTEXT_WINDOW = 1_000_000
 AUTOCOMPACT_BUFFER_TOKENS = 33_000
 
 
-def find_latest_transcript() -> Optional[Path]:
-  """Finds the active transcript via the hook state cache or brain directory scan."""
+def load_annotations_map() -> Dict[str, Dict[str, Any]]:
+  """Parses `~/.gemini/antigravity/annotations/*.pbtxt` for titles and `last_user_view_time`."""
+  result: Dict[str, Dict[str, Any]] = {}
+  try:
+    if not ANNOTATIONS_DIR.is_dir():
+      return result
+    for pbtxt_file in ANNOTATIONS_DIR.iterdir():
+      if pbtxt_file.suffix != ".pbtxt":
+        continue
+      conv_id = pbtxt_file.stem
+      try:
+        raw = pbtxt_file.read_text(encoding="utf-8", errors="replace")
+      except OSError:
+        continue
+
+      title_match = re.search(r'title:\s*"([^"]+)"', raw)
+      view_match = re.search(
+        r"last_user_view_time:\s*\{\s*seconds:\s*(\d+)(?:\s+nanos:\s*(\d+))?",
+        raw,
+      )
+      archived = "archived:true" in raw.replace(" ", "")
+
+      view_ts = 0.0
+      if view_match:
+        secs = float(view_match.group(1))
+        nanos = float(view_match.group(2) or 0)
+        view_ts = secs + (nanos / 1_000_000_000.0)
+
+      result[conv_id] = {
+        "title": title_match.group(1) if title_match else "",
+        "last_view_ts": view_ts,
+        "archived": archived,
+      }
+  except OSError as error:
+    sm.logger.info({"error": str(error)}, "Annotations scan restricted in sandbox")
+  return result
+
+
+def discover_conversations(
+  requested_id: Optional[str] = None,
+) -> Tuple[Optional[Path], List[Dict[str, Any]]]:
+  """Finds the active conversation transcript (reacting immediately to UI tab switches)
+  and returns a list of recent conversations for the selector."""
+  annotations = load_annotations_map()
+  candidates: List[Dict[str, Any]] = []
+
+  try:
+    if BRAIN_DIR.is_dir():
+      for child in BRAIN_DIR.iterdir():
+        if not child.is_dir():
+          continue
+        conv_id = child.name
+        transcript_candidate = child / ".system_generated" / "logs" / "transcript.jsonl"
+        if not transcript_candidate.is_file():
+          continue
+
+        try:
+          t_mtime = transcript_candidate.stat().st_mtime
+        except OSError:
+          t_mtime = 0.0
+
+        ann = annotations.get(conv_id, {})
+        if ann.get("archived"):
+          continue
+
+        view_ts = float(ann.get("last_view_ts") or 0.0)
+        # Activity score combines the latest UI view/switch timestamp and transcript write time.
+        activity_ts = max(t_mtime, view_ts)
+        candidates.append({
+          "id": conv_id,
+          "title": str(ann.get("title") or ""),
+          "transcript_path": transcript_candidate,
+          "activity_ts": activity_ts,
+          "view_ts": view_ts,
+          "t_mtime": t_mtime,
+        })
+  except OSError as error:
+    sm.logger.info({"error": str(error)}, "Brain directory scan restricted in sandbox")
+
+  # Sort newest-viewed or newest-updated conversation first.
+  candidates.sort(key=lambda item: item["activity_ts"], reverse=True)
+
+  recent_list: List[Dict[str, Any]] = []
+  for item in candidates[:10]:
+    cid = item["id"]
+    title = item["title"] or f"Session {cid[:8]}"
+    recent_list.append({
+      "id": cid,
+      "title": title,
+    })
+
+  # 1. If a specific conversation was requested by the UI, honor it first.
+  if requested_id and requested_id != "auto":
+    for item in candidates:
+      if item["id"] == requested_id:
+        return item["transcript_path"], recent_list
+    direct_path = BRAIN_DIR / requested_id / ".system_generated" / "logs" / "transcript.jsonl"
+    if direct_path.is_file():
+      return direct_path, recent_list
+
+  # 2. Otherwise use the highest activity_ts conversation (updates on every chat switch!).
+  if candidates:
+    return candidates[0]["transcript_path"], recent_list
+
+  # 3. Fallback for sandboxed CLI tests where directory listing is blocked.
   if sm.STATE_CACHE_FILE.is_file():
     try:
       cached = json.loads(sm.STATE_CACHE_FILE.read_text(encoding="utf-8"))
       cached_path = Path(str(cached.get("transcript_path") or ""))
       if cached_path.is_file():
-        return cached_path
+        cid = cached_path.parents[2].name
+        return cached_path, [{"id": cid, "title": f"Session {cid[:8]}"}]
     except (OSError, json.JSONDecodeError) as error:
       sm.logger.info({"error": str(error)}, "State cache read skipped")
 
-  try:
-    if not BRAIN_DIR.is_dir():
-      return None
-    candidates: List[Path] = []
-    for child in BRAIN_DIR.iterdir():
-      if not child.is_dir():
-        continue
-      transcript_candidate = child / ".system_generated" / "logs" / "transcript.jsonl"
-      if transcript_candidate.is_file():
-        candidates.append(transcript_candidate)
-    if candidates:
-      candidates.sort(key=lambda item: item.stat().st_mtime, reverse=True)
-      return candidates[0]
-  except OSError as error:
-    sm.logger.info({"error": str(error)}, "Directory scan restricted in current environment")
-
-  return None
+  return None, []
 
 
 def extract_clean_user_text(raw_content: str) -> str:
@@ -64,12 +156,10 @@ def extract_clean_user_text(raw_content: str) -> str:
   if not raw_content:
     return ""
 
-  # Check for spoken user lines inside <talker_agent_context> first.
   talker_matches = re.findall(r'user:\s*"([^"]+)"', raw_content)
   if talker_matches:
     return talker_matches[-1].strip()
 
-  # Otherwise extract content inside <USER_REQUEST> tags, stripping XML blocks.
   request_match = re.search(
     r"<USER_REQUEST>(.*?)</USER_REQUEST>",
     raw_content,
@@ -119,7 +209,6 @@ def extract_conversation_digest(steps: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 def compute_token_breakdown(active_tokens: int, cached_tokens: int, input_tokens: int) -> Dict[str, Any]:
   """Splits active context tokens into Claude-style categories out of 1M capacity."""
-  # Estimate fixed system/customization overhead vs conversation messages.
   system_prompt_tokens = min(12_000, int(active_tokens * 0.08)) if active_tokens > 0 else 12_000
   skills_tokens = min(9_900, int(active_tokens * 0.06)) if active_tokens > 0 else 9_900
   mcp_tokens = min(7_300, int(active_tokens * 0.05)) if active_tokens > 0 else 7_300
@@ -128,7 +217,7 @@ def compute_token_breakdown(active_tokens: int, cached_tokens: int, input_tokens
   overhead_tokens = system_prompt_tokens + skills_tokens + mcp_tokens + rules_tokens
   messages_tokens = max(0, active_tokens - overhead_tokens)
 
-  used_Percent = round((active_tokens / MAX_CONTEXT_WINDOW) * 100.0, 1)
+  used_percent = round((active_tokens / MAX_CONTEXT_WINDOW) * 100.0, 1)
   free_space_tokens = max(0, MAX_CONTEXT_WINDOW - active_tokens - AUTOCOMPACT_BUFFER_TOKENS)
 
   def pct(val: int) -> float:
@@ -136,7 +225,7 @@ def compute_token_breakdown(active_tokens: int, cached_tokens: int, input_tokens
 
   return {
     "max_tokens": MAX_CONTEXT_WINDOW,
-    "used_percent": used_Percent,
+    "used_percent": used_percent,
     "messages_tokens": messages_tokens,
     "messages_pct": pct(messages_tokens),
     "cached_tokens": cached_tokens,
@@ -228,14 +317,16 @@ def write_handoff_markdown(
     sm.logger.error({"path": str(handoff_path), "error": str(error)}, "Failed writing handoff file")
 
 
-def collect_live_telemetry() -> Dict[str, Any]:
-  """Loads the latest conversation transcript and returns JSON-serializable telemetry."""
-  transcript_path = find_latest_transcript()
+def collect_live_telemetry(requested_id: Optional[str] = None) -> Dict[str, Any]:
+  """Loads the active or requested conversation transcript and returns JSON telemetry."""
+  transcript_path, recent_conversations = discover_conversations(requested_id)
   if transcript_path is None:
     breakdown = compute_token_breakdown(0, 0, 0)
     return {
       "found": False,
       "conversation_id": "none",
+      "conversation_title": "No active chat",
+      "recent_conversations": [],
       "alert_level": "HEALTHY",
       "cache_state": "Warm (Waiting)",
       "active_context_tokens": 0,
@@ -271,6 +362,20 @@ def collect_live_telemetry() -> Dict[str, Any]:
   handoff_path = artifact_dir / "SESSION_HANDOFF.md"
   offload_preview = build_offload_prompt(conversation_id, metrics, digest, handoff_path)
 
+  # Resolve human-readable title for the active conversation.
+  conv_title = ""
+  for item in recent_conversations:
+    if item["id"] == conversation_id and not item["title"].startswith("Session "):
+      conv_title = item["title"]
+      break
+  if not conv_title:
+    prompts = digest.get("user_prompts") or []
+    if prompts:
+      first_p = prompts[0]
+      conv_title = (first_p[:40] + "...") if len(first_p) > 40 else first_p
+    else:
+      conv_title = f"Session {conversation_id[:8]}"
+
   compact_available = (
     metrics.active_context_tokens >= sm.COMPACT_TOKEN_THRESHOLD
     or metrics.steps_since_last_compaction >= 20
@@ -279,6 +384,8 @@ def collect_live_telemetry() -> Dict[str, Any]:
   return {
     "found": True,
     "conversation_id": conversation_id,
+    "conversation_title": conv_title,
+    "recent_conversations": recent_conversations,
     "alert_level": metrics.alert_level,
     "cache_state": metrics.cache_state,
     "active_context_tokens": metrics.active_context_tokens,
@@ -316,9 +423,9 @@ def copy_to_clipboard(text: str) -> bool:
     return False
 
 
-def execute_compact_action() -> Dict[str, Any]:
+def execute_compact_action(requested_id: Optional[str] = None) -> Dict[str, Any]:
   """Triggers compaction or prepares `/compact` for the active conversation."""
-  transcript_path = find_latest_transcript()
+  transcript_path, _ = discover_conversations(requested_id)
   copied = copy_to_clipboard("/compact")
   if transcript_path is None:
     return {
@@ -353,9 +460,9 @@ def execute_compact_action() -> Dict[str, Any]:
   }
 
 
-def execute_offload_action() -> Dict[str, Any]:
+def execute_offload_action(requested_id: Optional[str] = None) -> Dict[str, Any]:
   """Generates SESSION_HANDOFF.md and launches a new conversation with the summary prompt."""
-  transcript_path = find_latest_transcript()
+  transcript_path, _ = discover_conversations(requested_id)
   if transcript_path is None:
     return {"ok": False, "message": "No active conversation found to offload."}
 
@@ -378,7 +485,6 @@ def execute_offload_action() -> Dict[str, Any]:
   new_title = f"Cont: {short_title}"
 
   launched_new_chat = False
-  agentapi_output = ""
   if AGENTAPI_BIN.is_file():
     try:
       result = subprocess.run(
@@ -395,8 +501,8 @@ def execute_offload_action() -> Dict[str, Any]:
       )
       agentapi_output = (result.stdout or "").strip()
       launched_new_chat = result.returncode == 0 and '"error"' not in agentapi_output
-    except OSError as error:
-      agentapi_output = str(error)
+    except OSError:
+      launched_new_chat = False
 
   if launched_new_chat:
     return {
@@ -414,20 +520,29 @@ def execute_offload_action() -> Dict[str, Any]:
     "handoff_path": str(handoff_path),
     "prompt": prompt_summary,
     "message": (
-      f"Saved SESSION_HANDOFF.md & copied new chat summary prompt to clipboard "
-      f"(press Cmd+N then Cmd+V to start fresh)."
+      "Saved SESSION_HANDOFF.md & copied new chat summary prompt to clipboard "
+      "(press Cmd+N then Cmd+V to start fresh)."
     ),
   }
 
 
+def parse_requested_conversation_id() -> Optional[str]:
+  """Extracts an optional `--conversation-id <id>` argument from sys.argv."""
+  for idx, arg in enumerate(sys.argv):
+    if arg == "--conversation-id" and idx + 1 < len(sys.argv):
+      return sys.argv[idx + 1].strip()
+  return None
+
+
 def main() -> int:
+  requested_id = parse_requested_conversation_id()
   if "--compact" in sys.argv:
-    sys.stdout.write(json.dumps(execute_compact_action()) + "\n")
+    sys.stdout.write(json.dumps(execute_compact_action(requested_id)) + "\n")
     return 0
   if "--offload" in sys.argv:
-    sys.stdout.write(json.dumps(execute_offload_action()) + "\n")
+    sys.stdout.write(json.dumps(execute_offload_action(requested_id)) + "\n")
     return 0
-  sys.stdout.write(json.dumps(collect_live_telemetry()) + "\n")
+  sys.stdout.write(json.dumps(collect_live_telemetry(requested_id)) + "\n")
   return 0
 
 

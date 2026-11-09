@@ -22,8 +22,8 @@
       --sg-free: #27272a;
     }
     body {
-      background-color: var(--sg-bg);
-      color: var(--sg-text);
+      background-color: var(--sg-bg) !important;
+      color: var(--sg-text) !important;
     }
     .sg-container {
       background-color: var(--sg-panel);
@@ -70,6 +70,13 @@
     }
     .sg-muted-text { color: var(--sg-muted); }
     .sg-dim-text { color: var(--sg-dim); }
+    .sg-select {
+      background-color: #1f1f22;
+      border: 1px solid #303036;
+      color: var(--sg-text);
+      border-radius: 6px;
+      outline: none;
+    }
     .sg-btn-compact {
       background-color: #1f1f22;
       border: 1px solid #3f3f46;
@@ -97,17 +104,33 @@
 </head>
 <body class="antialiased p-3 select-none">
   <div class="sg-container p-4 space-y-3.5 max-w-md mx-auto">
-    <div class="flex items-center justify-between">
-      <span class="text-sm font-medium sg-muted-text">Context</span>
-      <span id="alert-pill" class="text-xs font-medium px-2 py-0.5 rounded bg-amber-500/15 text-amber-400">
-        OFFLOAD READY
-      </span>
+    <div class="space-y-1.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-medium sg-muted-text">Context</span>
+          <span id="active-conv-badge" class="text-xs font-mono sg-dim-text">#a18bcc4a</span>
+        </div>
+        <span id="alert-pill" class="text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
+          HEALTHY
+        </span>
+      </div>
+
+      <!-- Active Conversation Auto-Follower & Selector -->
+      <div class="flex items-center gap-1.5">
+        <select
+          id="conv-selector"
+          onchange="handleConversationChange(this.value)"
+          class="sg-select w-full text-xs px-2 py-1 font-medium truncate"
+        >
+          <option value="auto">Auto · Follow Active Chat</option>
+        </select>
+      </div>
     </div>
 
     <div class="space-y-2">
       <div class="flex items-baseline justify-between">
-        <span id="used-pct-heading" class="text-base font-medium">18% used</span>
-        <span id="used-tokens-heading" class="text-sm sg-muted-text font-mono">180k / 1M</span>
+        <span id="used-pct-heading" class="text-base font-medium">4.4% used</span>
+        <span id="used-tokens-heading" class="text-sm sg-muted-text font-mono">44.2k / 1M</span>
       </div>
       <div class="sg-bar-track">
         <div id="seg-messages" class="sg-bar-segment sg-dot-blue"></div>
@@ -126,8 +149,8 @@
           <span class="sg-muted-text">Messages (KV cached)</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="val-cached" class="sg-muted-text">141.7k</span>
-          <span id="pct-cached" class="w-12 text-right">14.2%</span>
+          <span id="val-cached" class="sg-muted-text">26.9k</span>
+          <span id="pct-cached" class="w-12 text-right">2.7%</span>
         </div>
       </div>
 
@@ -137,8 +160,8 @@
           <span class="sg-muted-text sg-dotted">Uncached input</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="val-uncached" class="sg-muted-text">8.5k</span>
-          <span id="pct-uncached" class="w-12 text-right">0.8%</span>
+          <span id="val-uncached" class="sg-muted-text">17.3k</span>
+          <span id="pct-uncached" class="w-12 text-right">1.7%</span>
         </div>
       </div>
 
@@ -148,8 +171,8 @@
           <span class="sg-muted-text">System prompt</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="val-system" class="sg-muted-text">12k</span>
-          <span id="pct-system" class="w-12 text-right">1.2%</span>
+          <span id="val-system" class="sg-muted-text">3.5k</span>
+          <span id="pct-system" class="w-12 text-right">0.4%</span>
         </div>
       </div>
 
@@ -159,8 +182,8 @@
           <span class="sg-muted-text sg-dotted">Skills</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="val-skills" class="sg-muted-text">9.9k</span>
-          <span id="pct-skills" class="w-12 text-right">1.0%</span>
+          <span id="val-skills" class="sg-muted-text">2.6k</span>
+          <span id="pct-skills" class="w-12 text-right">0.3%</span>
         </div>
       </div>
 
@@ -170,8 +193,8 @@
           <span class="sg-muted-text sg-dotted">MCP tools &amp; instructions</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="val-mcp" class="sg-muted-text">7.3k</span>
-          <span id="pct-mcp" class="w-12 text-right">0.7%</span>
+          <span id="val-mcp" class="sg-muted-text">2.2k</span>
+          <span id="pct-mcp" class="w-12 text-right">0.2%</span>
         </div>
       </div>
 
@@ -181,8 +204,8 @@
           <span class="sg-muted-text sg-dotted">Memory &amp; rules files</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="val-rules" class="sg-muted-text">2.8k</span>
-          <span id="pct-rules" class="w-12 text-right">0.3%</span>
+          <span id="val-rules" class="sg-muted-text">0.9k</span>
+          <span id="pct-rules" class="w-12 text-right">0.1%</span>
         </div>
       </div>
 
@@ -203,8 +226,8 @@
           <span class="sg-muted-text">Free space</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="val-free" class="sg-muted-text">785.0k</span>
-          <span id="pct-free" class="w-12 text-right">78.5%</span>
+          <span id="val-free" class="sg-muted-text">922.8k</span>
+          <span id="pct-free" class="w-12 text-right">92.3%</span>
         </div>
       </div>
     </div>
@@ -217,7 +240,7 @@
           <span class="sg-muted-text">KV Cache state</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="row-cache-hit" class="sg-muted-text">98.6% hit</span>
+          <span id="row-cache-hit" class="sg-muted-text">60.8% hit</span>
           <span id="row-cache-status" class="w-16 text-right text-emerald-400">Warm</span>
         </div>
       </div>
@@ -228,8 +251,8 @@
           <span class="sg-muted-text">Compactions</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="row-compactions" class="sg-muted-text">0 / 2</span>
-          <span id="row-compactions-state" class="w-16 text-right sg-dim-text">0 used</span>
+          <span id="row-compactions" class="sg-muted-text">1 / 2</span>
+          <span id="row-compactions-state" class="w-16 text-right sg-dim-text">Ready</span>
         </div>
       </div>
 
@@ -239,7 +262,7 @@
           <span class="sg-muted-text">Idle time</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="row-idle" class="sg-muted-text">0.2m</span>
+          <span id="row-idle" class="sg-muted-text">0.3m</span>
           <span id="row-idle-ttl" class="w-16 text-right sg-dim-text">&lt; 15m</span>
         </div>
       </div>
@@ -250,8 +273,8 @@
           <span class="sg-muted-text">Steps</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-xs">
-          <span id="row-steps" class="sg-muted-text">138</span>
-          <span id="row-steps-since" class="w-16 text-right sg-dim-text">138 active</span>
+          <span id="row-steps" class="sg-muted-text">168</span>
+          <span id="row-steps-since" class="w-16 text-right sg-dim-text">7 active</span>
         </div>
       </div>
     </div>
@@ -290,7 +313,7 @@
           <span id="chev-preview" class="text-xs sg-dim-text">›</span>
           <span>Offload prompt summary</span>
         </div>
-        <span id="count-prompts" class="font-mono text-xs sg-dim-text">6 turns</span>
+        <span id="count-prompts" class="font-mono text-xs sg-dim-text">11 turns</span>
       </div>
       <div id="sec-preview" class="hidden pb-2">
         <pre id="offload-preview-box" class="text-xs font-mono p-2.5 rounded bg-black/50 border border-zinc-800 sg-muted-text whitespace-pre-wrap overflow-x-auto max-h-40"></pre>
@@ -301,7 +324,7 @@
           <span class="text-xs sg-dim-text">›</span>
           <span>Files created / modified</span>
         </div>
-        <span id="count-files" class="font-mono text-xs sg-dim-text">11</span>
+        <span id="count-files" class="font-mono text-xs sg-dim-text">15</span>
       </div>
 
       <div class="flex items-center justify-between py-1">
@@ -317,6 +340,30 @@
   <script>
     const INITIAL_DATA = __INITIAL_TELEMETRY_JSON__;
     const LOADED_MTIME = INITIAL_DATA ? INITIAL_DATA.html_mtime : null;
+    const URL_PARAMS = new URLSearchParams(window.location.search);
+    const SIDECAR_TOKEN = URL_PARAMS.get('token') || '';
+    let selectedConversationId = 'auto';
+    let currentResolvedId = INITIAL_DATA?.conversation_id || '';
+
+    /**
+     * Authenticated request helper that passes the `X-Sidecar-Token` header
+     * and `?token=` parameter required by `SidecarApp.#validateToken`.
+     */
+    async function sidecarRequest(path, payload = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (SIDECAR_TOKEN) {
+        headers['X-Sidecar-Token'] = SIDECAR_TOKEN;
+      }
+      const sep = path.includes('?') ? '&' : '?';
+      const authUrl = SIDECAR_TOKEN
+        ? `${path}${sep}token=${encodeURIComponent(SIDECAR_TOKEN)}`
+        : path;
+      return fetch(authUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+    }
 
     function fmtK(tokens) {
       if (!tokens || tokens <= 0) return '0';
@@ -329,11 +376,43 @@
       if (el) el.classList.toggle('hidden');
     }
 
+    function handleConversationChange(value) {
+      selectedConversationId = value || 'auto';
+      pollTelemetry();
+    }
+
+    function updateConversationSelector(data) {
+      const select = document.getElementById('conv-selector');
+      if (!select) return;
+      const recent = Array.isArray(data.recent_conversations) ? data.recent_conversations : [];
+      const activeTitle = data.conversation_title || 'Active Chat';
+      const activeShort = (data.conversation_id || '').slice(0, 8);
+
+      document.getElementById('active-conv-badge').textContent = activeShort ? `#${activeShort}` : '';
+
+      const options = [
+        `<option value="auto">Auto (Active): ${activeTitle}</option>`,
+        ...recent.map((item) => {
+          const shortId = String(item.id || '').slice(0, 8);
+          const label = `${item.title} (${shortId})`;
+          return `<option value="${item.id}">${label}</option>`;
+        }),
+      ];
+      const nextHtml = options.join('');
+      if (select.innerHTML !== nextHtml) {
+        select.innerHTML = nextHtml;
+      }
+      select.value = selectedConversationId;
+    }
+
     function renderTelemetry(data) {
       if (!data) return;
+      currentResolvedId = data.conversation_id || currentResolvedId;
+      updateConversationSelector(data);
+
       const b = data.breakdown || {};
       const active = data.active_context_tokens || 0;
-      const usedPct = b.used_percent || Math.round((active / 1000000) * 100);
+      const usedPct = b.used_percent ?? Math.round((active / 1000000) * 1000) / 10;
 
       document.getElementById('used-pct-heading').textContent = usedPct + '% used';
       document.getElementById('used-tokens-heading').textContent = fmtK(active) + ' / 1M';
@@ -346,12 +425,12 @@
           ? 'text-xs font-medium px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400'
           : 'text-xs font-medium px-2 py-0.5 rounded bg-amber-500/15 text-amber-400';
 
-      // Progress bar segments (scaled subtly so small segments stay visible)
-      document.getElementById('seg-messages').style.width = Math.max(2, b.cached_pct || 14) + '%';
+      // Progress bar segments
+      document.getElementById('seg-messages').style.width = Math.max(2, b.cached_pct || 2) + '%';
       document.getElementById('seg-uncached').style.width = Math.max(1, b.uncached_pct || 1) + '%';
-      document.getElementById('seg-system').style.width = Math.max(1, b.system_prompt_pct || 1.2) + '%';
-      document.getElementById('seg-skills').style.width = Math.max(1, b.skills_pct || 1.0) + '%';
-      document.getElementById('seg-mcp').style.width = Math.max(1, b.mcp_pct || 0.7) + '%';
+      document.getElementById('seg-system').style.width = Math.max(1, b.system_prompt_pct || 0.8) + '%';
+      document.getElementById('seg-skills').style.width = Math.max(1, b.skills_pct || 0.6) + '%';
+      document.getElementById('seg-mcp').style.width = Math.max(1, b.mcp_pct || 0.5) + '%';
       document.getElementById('seg-buffer').style.width = Math.max(2, b.autocompact_buffer_pct || 3.3) + '%';
 
       // Breakdown list rows
@@ -411,10 +490,8 @@
     async function triggerCompact() {
       showFeedback('Running /compact...');
       try {
-        const res = await fetch('/api/compact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}',
+        const res = await sidecarRequest('/api/compact', {
+          conversationId: selectedConversationId === 'auto' ? currentResolvedId : selectedConversationId,
         });
         const data = await res.json();
         showFeedback(data.message || 'Copied /compact to clipboard.');
@@ -427,10 +504,8 @@
     async function triggerOffload() {
       showFeedback('Generating SESSION_HANDOFF.md and starting new chat...');
       try {
-        const res = await fetch('/api/offload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}',
+        const res = await sidecarRequest('/api/offload', {
+          conversationId: selectedConversationId === 'auto' ? currentResolvedId : selectedConversationId,
         });
         const data = await res.json();
         if (data.prompt) {
@@ -448,10 +523,8 @@
 
     async function pollTelemetry() {
       try {
-        const res = await fetch('/api/metrics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}',
+        const res = await sidecarRequest('/api/metrics', {
+          conversationId: selectedConversationId,
         });
         if (res.ok) {
           const payload = await res.json();
@@ -467,7 +540,7 @@
     }
 
     renderTelemetry(INITIAL_DATA);
-    setInterval(pollTelemetry, 3000);
+    setInterval(pollTelemetry, 1500);
   </script>
 </body>
 </html>

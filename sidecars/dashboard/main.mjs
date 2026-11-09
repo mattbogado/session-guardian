@@ -8,11 +8,16 @@ const HTML_URL = new URL('./index.html', import.meta.url);
 
 /**
  * Runs a command mode on `server.py` (`--json`, `--compact`, or `--offload`)
- * and attaches `html_mtime` so the webview hot-reloads when `index.html` changes.
+ * with an optional target conversation ID (`--conversation-id <id>`), and
+ * attaches `html_mtime` so the webview hot-reloads when `index.html` changes.
  */
-function runServerAction(flag) {
+function runServerAction(flag, conversationId = 'auto') {
   try {
-    const rawJson = execFileSync('python3', [SCRIPT_PATH, flag], {
+    const args = [SCRIPT_PATH, flag];
+    if (conversationId && conversationId !== 'auto') {
+      args.push('--conversation-id', String(conversationId));
+    }
+    const rawJson = execFileSync('python3', args, {
       encoding: 'utf8',
       timeout: 8000,
     });
@@ -32,14 +37,15 @@ const app = new SidecarApp();
 
 app.page('/', () => {
   const template = readFileSync(HTML_URL, 'utf8');
-  const initialData = JSON.stringify(runServerAction('--json'));
+  const initialData = JSON.stringify(runServerAction('--json', 'auto'));
   return template.replace('__INITIAL_TELEMETRY_JSON__', initialData);
 });
 
-app.api('/api/metrics', () => runServerAction('--json'));
+app.api('/api/metrics', (data) => runServerAction('--json', data?.conversationId), 'POST');
+app.api('/api/metrics', (data) => runServerAction('--json', data?.conversationId), 'GET');
 
-app.api('/api/compact', () => runServerAction('--compact'));
+app.api('/api/compact', (data) => runServerAction('--compact', data?.conversationId), 'POST');
 
-app.api('/api/offload', () => runServerAction('--offload'));
+app.api('/api/offload', (data) => runServerAction('--offload', data?.conversationId), 'POST');
 
 app.run();
