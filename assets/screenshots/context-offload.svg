@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 710" width="420" height="710" fill="none">
+  <defs>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .muted { fill: #8e8e93; font-size: 13px; }
+      .dim { fill: #636366; font-size: 12px; }
+      .val { fill: #8e8e93; font-size: 12px; text-anchor: end; }
+      .pct { fill: #f4f4f5; font-size: 12px; text-anchor: end; }
+      .dotted { stroke: #52525b; stroke-width: 1; stroke-dasharray: 2 2; }
+    </style>
+  </defs>
+
+  <!-- Outer Dark Background -->
+  <rect width="420" height="710" rx="16" fill="#121212"/>
+
+  <!-- Card Container -->
+  <rect x="14" y="14" width="392" height="682" rx="12" fill="#161616" stroke="#262626" stroke-width="1"/>
+
+  <!-- Header: Context + ID + Pill -->
+  <text x="32" y="42" class="sans" fill="#8e8e93" font-size="14" font-weight="500">Context</text>
+  <text x="90" y="42" class="mono" fill="#636366" font-size="12">#3a684dfc</text>
+
+  <rect x="312" y="27" width="76" height="22" rx="5" fill="#f59e0b" fill-opacity="0.15"/>
+  <text x="350" y="42" class="sans" fill="#fbbf24" font-size="11" font-weight="600" text-anchor="middle">OFFLOAD</text>
+
+  <!-- Active Conversation Subtitle -->
+  <text x="32" y="61" class="sans dim">Redesigning Portfolio Website</text>
+
+  <!-- Percentage Used & Total Capacity -->
+  <text x="32" y="92" class="sans" fill="#f4f4f5" font-size="16" font-weight="600">24.5% used</text>
+  <text x="388" y="92" class="mono" fill="#8e8e93" font-size="13" text-anchor="end">244.7k / 1M</text>
+
+  <!-- Multi-Segment Stacked Progress Bar -->
+  <rect x="32" y="104" width="356" height="6" rx="3" fill="#27272a"/>
+  <rect x="32" y="104" width="12" height="6" rx="3" fill="#2b7fff"/>
+  <rect x="46" y="104" width="88" height="6" rx="3" fill="#ea580c"/>
+  <rect x="136" y="104" width="12" height="6" rx="3" fill="#10b981"/>
+  <rect x="150" y="104" width="10" height="6" rx="3" fill="#d97706"/>
+  <rect x="162" y="104" width="10" height="6" rx="3" fill="#71717a"/>
+  <rect x="174" y="104" width="20" height="6" rx="3" fill="#52525b"/>
+
+  <!-- Token Category Breakdown List -->
+  <!-- Row 1: Messages (KV cached) -->
+  <rect x="32" y="128" width="11" height="11" rx="3" fill="#2b7fff"/>
+  <text x="53" y="138" class="sans muted">Messages (KV cached)</text>
+  <text x="330" y="138" class="mono val">0</text>
+  <text x="388" y="138" class="mono pct">0%</text>
+
+  <!-- Row 2: Uncached input -->
+  <rect x="32" y="154" width="11" height="11" rx="3" fill="#ea580c"/>
+  <text x="53" y="164" class="sans muted">Uncached input</text>
+  <line x1="53" y1="168" x2="145" y2="168" class="dotted"/>
+  <text x="330" y="164" class="mono val">244.7k</text>
+  <text x="388" y="164" class="mono pct">24.5%</text>
+
+  <!-- Row 3: System prompt -->
+  <rect x="32" y="180" width="11" height="11" rx="3" fill="#10b981"/>
+  <text x="53" y="190" class="sans muted">System prompt</text>
+  <text x="330" y="190" class="mono val">12k</text>
+  <text x="388" y="190" class="mono pct">1.2%</text>
+
+  <!-- Row 4: Skills -->
+  <rect x="32" y="206" width="11" height="11" rx="3" fill="#d97706"/>
+  <text x="53" y="216" class="sans muted">Skills</text>
+  <line x1="53" y1="220" x2="86" y2="220" class="dotted"/>
+  <text x="330" y="216" class="mono val">9.9k</text>
+  <text x="388" y="216" class="mono pct">1.0%</text>
+
+  <!-- Row 5: MCP tools & instructions -->
+  <rect x="32" y="232" width="11" height="11" rx="3" fill="#71717a"/>
+  <text x="53" y="242" class="sans muted">MCP tools &amp; instructions</text>
+  <line x1="53" y1="246" x2="205" y2="246" class="dotted"/>
+  <text x="330" y="242" class="mono val">7.3k</text>
+  <text x="388" y="242" class="mono pct">0.7%</text>
+
+  <!-- Row 6: Memory & rules files -->
+  <rect x="32" y="258" width="11" height="11" rx="3" fill="#71717a"/>
+  <text x="53" y="268" class="sans muted">Memory &amp; rules files</text>
+  <line x1="53" y1="272" x2="178" y2="272" class="dotted"/>
+  <text x="330" y="268" class="mono val">2.8k</text>
+  <text x="388" y="268" class="mono pct">0.3%</text>
+
+  <!-- Row 7: Autocompact buffer -->
+  <rect x="32" y="284" width="11" height="11" rx="3" fill="#52525b"/>
+  <text x="53" y="294" class="sans muted">Autocompact buffer</text>
+  <text x="330" y="294" class="mono val">33k</text>
+  <text x="388" y="294" class="mono pct">3.3%</text>
+
+  <!-- Row 8: Free space -->
+  <rect x="32" y="310" width="11" height="11" rx="3" fill="#27272a" stroke="#3f3f46" stroke-width="1"/>
+  <text x="53" y="320" class="sans muted">Free space</text>
+  <text x="330" y="320" class="mono val">722.3k</text>
+  <text x="388" y="320" class="mono pct">72.2%</text>
+
+  <!-- Divider 1 -->
+  <line x1="32" y1="338" x2="388" y2="338" stroke="#262626" stroke-width="1"/>
+
+  <!-- Listed Session Telemetry Rows -->
+  <!-- KV Cache state -->
+  <rect x="32" y="354" width="11" height="11" rx="3" fill="#ea580c"/>
+  <text x="53" y="364" class="sans muted">KV Cache state</text>
+  <text x="322" y="364" class="mono val">0% hit</text>
+  <text x="388" y="364" class="mono" fill="#fb923c" font-size="12" text-anchor="end">Cold</text>
+
+  <!-- Compactions -->
+  <rect x="32" y="380" width="11" height="11" rx="3" fill="#71717a"/>
+  <text x="53" y="390" class="sans muted">Compactions</text>
+  <text x="322" y="390" class="mono val">0 / 2</text>
+  <text x="388" y="390" class="mono dim" text-anchor="end">Ready</text>
+
+  <!-- Idle time -->
+  <rect x="32" y="406" width="11" height="11" rx="3" fill="#71717a"/>
+  <text x="53" y="416" class="sans muted">Idle time</text>
+  <text x="322" y="416" class="mono val">82.6m</text>
+  <text x="388" y="416" class="mono" fill="#fbbf24" font-size="12" text-anchor="end">Cooling</text>
+
+  <!-- Steps -->
+  <rect x="32" y="432" width="11" height="11" rx="3" fill="#71717a"/>
+  <text x="53" y="442" class="sans muted">Steps</text>
+  <text x="322" y="442" class="mono val">124</text>
+  <text x="388" y="442" class="mono dim" text-anchor="end">124 active</text>
+
+  <!-- Divider 2 -->
+  <line x1="32" y1="460" x2="388" y2="460" stroke="#262626" stroke-width="1"/>
+
+  <!-- Action Buttons: Compact (Ready) & Offload -->
+  <rect x="32" y="474" width="173" height="34" rx="8" fill="#1f1f22" stroke="#3f3f46" stroke-width="1"/>
+  <text x="90" y="495" class="sans" fill="#f4f4f5" font-size="12" font-weight="500" text-anchor="middle">Compact</text>
+  <rect x="124" y="482" width="46" height="18" rx="4" fill="#10b981" fill-opacity="0.18"/>
+  <text x="147" y="495" class="mono" fill="#34d399" font-size="10" text-anchor="middle">Ready</text>
+
+  <rect x="215" y="474" width="173" height="34" rx="8" fill="#1d4ed8" stroke="#3b82f6" stroke-width="1"/>
+  <text x="301" y="495" class="sans" fill="#ffffff" font-size="12" font-weight="500" text-anchor="middle">Offload to New Chat  ↗</text>
+
+  <!-- Divider 3 -->
+  <line x1="32" y1="522" x2="388" y2="522" stroke="#262626" stroke-width="1"/>
+
+  <!-- Expandable Detail Rows (Expanded Offload Summary) -->
+  <text x="32" y="544" class="sans dim">▾</text>
+  <text x="46" y="544" class="sans muted">Offload prompt summary</text>
+  <text x="388" y="544" class="mono dim" text-anchor="end">8 turns</text>
+
+  <rect x="32" y="554" width="356" height="84" rx="6" fill="#0c0c0e" stroke="#27272a" stroke-width="1"/>
+  <text x="42" y="572" class="mono" fill="#93c5fd" font-size="10">@[/Users/.../brain/3a684dfc/SESSION_HANDOFF.md]</text>
+  <text x="42" y="590" class="mono" fill="#8e8e93" font-size="10">### Context Offloaded from Session `3a684dfc`</text>
+  <text x="42" y="606" class="mono" fill="#8e8e93" font-size="10">- Original Goal: Redesigning Portfolio Website</text>
+  <text x="42" y="622" class="mono" fill="#8e8e93" font-size="10">- Stats: 244,659 tokens (0% KV hit), 124 steps</text>
+
+  <text x="32" y="658" class="sans dim">›</text>
+  <text x="46" y="658" class="sans muted">Files created / modified</text>
+  <text x="388" y="658" class="mono dim" text-anchor="end">6</text>
+
+  <text x="32" y="682" class="sans dim">›</text>
+  <text x="46" y="682" class="sans muted">Active skills &amp; rules</text>
+  <text x="388" y="682" class="mono dim" text-anchor="end">41</text>
+</svg>
