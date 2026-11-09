@@ -70,13 +70,6 @@
     }
     .sg-muted-text { color: var(--sg-muted); }
     .sg-dim-text { color: var(--sg-dim); }
-    .sg-select {
-      background-color: #1f1f22;
-      border: 1px solid #303036;
-      color: var(--sg-text);
-      border-radius: 6px;
-      outline: none;
-    }
     .sg-btn-compact {
       background-color: #1f1f22;
       border: 1px solid #3f3f46;
@@ -104,7 +97,7 @@
 </head>
 <body class="antialiased p-3 select-none">
   <div class="sg-container p-4 space-y-3.5 max-w-md mx-auto">
-    <div class="space-y-1.5">
+    <div class="space-y-0.5">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium sg-muted-text">Context</span>
@@ -114,17 +107,9 @@
           HEALTHY
         </span>
       </div>
-
-      <!-- Active Conversation Auto-Follower & Selector -->
-      <div class="flex items-center gap-1.5">
-        <select
-          id="conv-selector"
-          onchange="handleConversationChange(this.value)"
-          class="sg-select w-full text-xs px-2 py-1 font-medium truncate"
-        >
-          <option value="auto">Auto · Follow Active Chat</option>
-        </select>
-      </div>
+      <p id="active-conv-title" class="text-xs sg-dim-text truncate">
+        AI Session Context and Memory Management
+      </p>
     </div>
 
     <div class="space-y-2">
@@ -342,8 +327,6 @@
     const LOADED_MTIME = INITIAL_DATA ? INITIAL_DATA.html_mtime : null;
     const URL_PARAMS = new URLSearchParams(window.location.search);
     const SIDECAR_TOKEN = URL_PARAMS.get('token') || '';
-    let selectedConversationId = 'auto';
-    let currentResolvedId = INITIAL_DATA?.conversation_id || '';
 
     /**
      * Authenticated request helper that passes the `X-Sidecar-Token` header
@@ -376,39 +359,13 @@
       if (el) el.classList.toggle('hidden');
     }
 
-    function handleConversationChange(value) {
-      selectedConversationId = value || 'auto';
-      pollTelemetry();
-    }
-
-    function updateConversationSelector(data) {
-      const select = document.getElementById('conv-selector');
-      if (!select) return;
-      const recent = Array.isArray(data.recent_conversations) ? data.recent_conversations : [];
-      const activeTitle = data.conversation_title || 'Active Chat';
-      const activeShort = (data.conversation_id || '').slice(0, 8);
-
-      document.getElementById('active-conv-badge').textContent = activeShort ? `#${activeShort}` : '';
-
-      const options = [
-        `<option value="auto">Auto (Active): ${activeTitle}</option>`,
-        ...recent.map((item) => {
-          const shortId = String(item.id || '').slice(0, 8);
-          const label = `${item.title} (${shortId})`;
-          return `<option value="${item.id}">${label}</option>`;
-        }),
-      ];
-      const nextHtml = options.join('');
-      if (select.innerHTML !== nextHtml) {
-        select.innerHTML = nextHtml;
-      }
-      select.value = selectedConversationId;
-    }
-
     function renderTelemetry(data) {
       if (!data) return;
-      currentResolvedId = data.conversation_id || currentResolvedId;
-      updateConversationSelector(data);
+
+      const shortId = (data.conversation_id || '').slice(0, 8);
+      document.getElementById('active-conv-badge').textContent = shortId ? `#${shortId}` : '';
+      document.getElementById('active-conv-title').textContent =
+        data.conversation_title || 'Active Session';
 
       const b = data.breakdown || {};
       const active = data.active_context_tokens || 0;
@@ -490,9 +447,7 @@
     async function triggerCompact() {
       showFeedback('Running /compact...');
       try {
-        const res = await sidecarRequest('/api/compact', {
-          conversationId: selectedConversationId === 'auto' ? currentResolvedId : selectedConversationId,
-        });
+        const res = await sidecarRequest('/api/compact', {});
         const data = await res.json();
         showFeedback(data.message || 'Copied /compact to clipboard.');
       } catch (err) {
@@ -504,9 +459,7 @@
     async function triggerOffload() {
       showFeedback('Generating SESSION_HANDOFF.md and starting new chat...');
       try {
-        const res = await sidecarRequest('/api/offload', {
-          conversationId: selectedConversationId === 'auto' ? currentResolvedId : selectedConversationId,
-        });
+        const res = await sidecarRequest('/api/offload', {});
         const data = await res.json();
         if (data.prompt) {
           document.getElementById('offload-preview-box').textContent = data.prompt;
@@ -523,9 +476,7 @@
 
     async function pollTelemetry() {
       try {
-        const res = await sidecarRequest('/api/metrics', {
-          conversationId: selectedConversationId,
-        });
+        const res = await sidecarRequest('/api/metrics', {});
         if (res.ok) {
           const payload = await res.json();
           if (LOADED_MTIME && payload.html_mtime && payload.html_mtime !== LOADED_MTIME) {
@@ -540,7 +491,7 @@
     }
 
     renderTelemetry(INITIAL_DATA);
-    setInterval(pollTelemetry, 1500);
+    setInterval(pollTelemetry, 1000);
   </script>
 </body>
 </html>

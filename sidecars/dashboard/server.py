@@ -99,21 +99,20 @@ def discover_conversations(
           continue
 
         view_ts = float(ann.get("last_view_ts") or 0.0)
-        # Activity score combines the latest UI view/switch timestamp and transcript write time.
-        activity_ts = max(t_mtime, view_ts)
+        # Prioritize the UI's `last_user_view_time` (`view_ts`) over background transcript writes
+        # (`t_mtime`) so clicking any session in the left sidebar switches immediately.
         candidates.append({
           "id": conv_id,
           "title": str(ann.get("title") or ""),
           "transcript_path": transcript_candidate,
-          "activity_ts": activity_ts,
           "view_ts": view_ts,
           "t_mtime": t_mtime,
         })
   except OSError as error:
     sm.logger.info({"error": str(error)}, "Brain directory scan restricted in sandbox")
 
-  # Sort newest-viewed or newest-updated conversation first.
-  candidates.sort(key=lambda item: item["activity_ts"], reverse=True)
+  # Sort strictly by latest user view timestamp first, then transcript mtime as tiebreaker.
+  candidates.sort(key=lambda item: (item["view_ts"], item["t_mtime"]), reverse=True)
 
   recent_list: List[Dict[str, Any]] = []
   for item in candidates[:10]:
